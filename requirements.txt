@@ -1,0 +1,9 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+jupyter
+tensorflow  # or pytorch, depending on the model framework you choose
+joblib  # for saving and loading models
+```
