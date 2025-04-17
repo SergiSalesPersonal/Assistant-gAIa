@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext
+from tkinter import messagebox
 import speech_recognition as sr
 from gtts import gTTS
 from playsound import playsound
@@ -19,29 +20,31 @@ HUGGINGFACE_TOKEN = "TU_TOKEN_DE_HUGGINGFACE"
 def hablar(texto):
     print("Asistente:", texto)
     tts = gTTS(text=texto, lang='es')
-    with tempfile.NamedTemporaryFile(delete=True, suffix=".mp3") as fp:
-        tts.save(fp.name)
-        playsound(fp.name)
+    temp_path = "temp_audio.mp3"  # Archivo temporal
+    tts.save(temp_path)  # Guarda el archivo temporal
+    playsound(temp_path)  # Reproduce el archivo
+    os.remove(temp_path)  # Elimina el archivo después de reproducirlo
 
 # =====================
 # ESCUCHAR (voz a texto)
 # =====================
 def escuchar():
     r = sr.Recognizer()
-    with sr.Microphone() as source:
-        playsound("beep.mp3")
-        print("🎙️ Escuchando...")
-        audio = r.listen(source)
-
-        try:
+    try:
+        with sr.Microphone() as source:
+            #playsound("beep.mp3")
+            print("🎙️ Escuchando...")
+            audio = r.listen(source)
             texto = r.recognize_google(audio, language='es-ES')
-            print("Tú dijiste:", texto)
+            print("Tu dijiste:", texto)
             return texto.lower()
-        except sr.UnknownValueError:
-            hablar("No entendí eso, ¿puedes repetir?")
-        except sr.RequestError:
-            hablar("Hubo un problema con el reconocimiento de voz.")
-        return ""
+    except sr.UnknownValueError:
+        hablar("No entendi eso, ¿puedes repetir?")
+    except sr.RequestError as e:
+        hablar(f"Hubo un problema con el reconocimiento de voz: {e}")
+    except Exception as e:
+        messagebox.showerror("Error", f"Ocurrio un error {e}.")
+    return ""
 
 # =====================
 # CLIMA
@@ -89,39 +92,41 @@ def preguntar_a_huggingface(pregunta):
 # RESPONDER
 # =====================
 def responder(comando):
-    if "hola" in comando:
-        hablar("¡Hola! ¿En qué te puedo ayudar?")
-    elif "abre el navegador" in comando:
-        hablar("Abriendo el navegador.")
-        os.system("start chrome")  # O usa "start firefox", etc.
-    elif "clima" in comando:
-        hablar("¿De qué ciudad quieres saber el clima?")
-        ciudad = escuchar()
-        if ciudad:
-            clima = obtener_clima(ciudad)
-            hablar(clima)
-    elif "salir" in comando or "adiós" in comando:
-        hablar("Hasta luego.")
-        exit()
-    else:
-        # Si no se reconoce el comando, se manda a Hugging Face
-        respuesta = preguntar_a_huggingface(comando)
-        hablar(respuesta)
-
+    try:
+        if "hola" in comando:
+            hablar("¡Hola! ¿En que te puedo ayudar?")
+        elif "abre el navegador" in comando:
+            hablar("Abriendo el navegador.")
+            os.system("start chrome")
+        elif "clima" in comando:
+            hablar("¿De que ciudad quieres saber el clima?")
+            ciudad = escuchar()
+            if ciudad:
+                clima = obtener_clima(ciudad)
+                hablar(clima)
+        elif "salir" in comando or "adios" in comando:
+            hablar("Hasta luego.")
+            exit()
+        else:
+            respuesta = preguntar_a_huggingface(comando)
+            hablar(respuesta)
+    except Exception as e:
+        messagebox.showerror("Error en responder", f"Ocurrio un error: {e}")
 # =====================
 # INTERFAZ GRÁFICA
 # =====================
 def iniciar_asistente():
     def on_enviar_comando():
         comando = entrada_comando.get()
-        texto_output.insert(tk.END, "Tú: " + comando + "\n")
+        texto_output.insert(tk.END, "Tu: " + comando + "\n")
         responder(comando)
         entrada_comando.delete(0, tk.END)
     
     def on_escuchar_comando():
+        
         comando = escuchar()
         if comando:
-            texto_output.insert(tk.END, "Tú: " + comando + "\n")
+            texto_output.insert(tk.END, "Tu: " + comando + "\n")
             responder(comando)
 
     # Crear la ventana principal
